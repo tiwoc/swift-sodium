@@ -19,6 +19,7 @@ class SodiumTests: XCTestCase {
         ("testBase64", testBase64),
         ("testBox", testBox),
         ("testGenericHash", testGenericHash),
+        ("testBlake2b", testBlake2b),
         ("testKeyDerivation", testKeyDerivation),
         ("testKeyDerivationContextTooLong", testKeyDerivationContextTooLong),
         ("testKeyDerivationInputKeyTooLong", testKeyDerivationInputKeyTooLong),
@@ -147,6 +148,27 @@ class SodiumTests: XCTestCase {
         XCTAssertTrue(s3.update(input: message))
         let h6 = sodium.utils.bin2hex(s3.final()!)!
         XCTAssertEqual(h6, h3)
+    }
+
+    func testBlake2b() {
+        let message = Data("My Test Message".utf8)
+        let key = sodium.utils.hex2bin("64 a9 02 6f ca 64 6c 31 df 54", ignore: " ")
+        let salt = Data(bytes: Array(0..<16))
+        let personal = Data(bytes: Array(16..<32))
+
+        XCTAssertNil(sodium.genericHash.blake2b(message: message, outputLength: 32, salt: Data("too short".utf8)))
+        XCTAssertNil(sodium.genericHash.blake2b(message: message, outputLength: 32, personal: Data("too short".utf8)))
+        XCTAssertNil(sodium.genericHash.blake2b(message: message, outputLength: 32, salt: Data("too long too long".utf8)))
+        XCTAssertNil(sodium.genericHash.blake2b(message: message, outputLength: 32, personal: Data("too long too long".utf8)))
+
+        let h1 = sodium.utils.bin2hex(sodium.genericHash.blake2b(message: message, outputLength: 32)!)
+        XCTAssertEqual(h1, "64a9026fca646c31df54426ad15a341e2444d8a1863d57eb27abecf239609f75")
+
+        let h2 = sodium.utils.bin2hex(sodium.genericHash.blake2b(message: message, key: key, outputLength: 32)!)
+        XCTAssertEqual(h2, "1773f324cba2e7b0017e32d7e44f7afd1036c5d4ef9a80ae0e52e95a629844cd")
+
+        let h3 = sodium.utils.bin2hex(sodium.genericHash.blake2b(message: message, key: key, outputLength: 32, salt: salt, personal: personal)!)
+        XCTAssertEqual(h3, "0afec391558efa7768f16041651d6b01e362e361a6bb5f6bd1801275338ef74f")
     }
 
     func testRandomBytes() {

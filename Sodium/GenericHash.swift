@@ -89,6 +89,38 @@ public class GenericHash {
         return hash(message: message, key: nil, outputLength: outputLength)
     }
 
+    public func blake2b(message: Data, key: Data? = nil, outputLength: Int, salt: Data? = nil, personal: Data? = nil) -> Data? {
+        if let salt = salt, salt.count != crypto_generichash_blake2b_SALTBYTES {
+            return nil
+        }
+        if let personal = personal, personal.count != crypto_generichash_blake2b_PERSONALBYTES {
+            return nil
+        }
+
+        var output = Data(count: outputLength)
+        let result = output.withUnsafeMutableBytes { outputPtr in
+            message.withUnsafeBytes { messagePtr in
+                (key ?? Data()).withUnsafeBytes { keyPtr in
+                    (salt ?? Data()).withUnsafeBytes { saltPtr in
+                        (personal ?? Data()).withUnsafeBytes { personalPtr in
+                            crypto_generichash_blake2b_salt_personal(
+                                outputPtr, output.count,
+                                messagePtr, CUnsignedLongLong(message.count),
+                                (key == nil) ? nil : keyPtr, key?.count ?? 0,
+                                (salt == nil) ? nil : saltPtr,
+                                (personal == nil) ? nil : personalPtr)
+                        }
+                    }
+                }
+            }
+        }
+
+        if result != 0 {
+            return nil
+        }
+        return output
+    }
+
     /**
      Initializes a `Stream` object to compute a fixed-length fingerprint for an incoming stream of data.arbitrary long message. Particular data will always have the same fingerprint for a given key, but different keys used to hash the same data are very likely to produce distinct fingerprints.
 
